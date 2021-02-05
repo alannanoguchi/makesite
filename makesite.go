@@ -2,50 +2,49 @@
 // https://gobyexample.com/panic
 // https://gobyexample.com/writing-files
 // https://gobyexample.com/reading-files
+// https://golang.org/pkg/flag/
 
 package main
 
 import (
-	"html/template"
+	"flag"
+	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
+	"text/template"
 )
 
 func main() {
-	// the Must function is used to verify that a template is valid during parsing
-	// .New("new_template_name") creates a new template with it's new name
-	// .ParseFiles() allows you to parse through the newly created template
-	// (Dani) looking for {{ }}  in .tmpl file where where we can inject content.
-	t := template.Must(template.New("template.tmpl").ParseFiles("template.tmpl"))
 
-	// Reading a File:
+	// Add a new flag to your command named file. This flag represents the name of any .txt file in the same directory as your program.
+	textFileFlag := flag.String("file", "", "Name of the .txt file")
+	flag.Parse()
+
+	save(textFileFlag)
+}
+
+func readFile() string {
 	fileContents, err := ioutil.ReadFile("first-post.txt")
 	if err != nil {
 		panic(err)
 	}
-
-	// .Execute() injects the Page instance's data, allowing us to render the content of the text file //
-	// it also saves the new file
-	t.Execute(os.Stdout, string(fileContents))
-	if err != nil {
-		panic(err)
-	}
-
-	// Create a new, blank HTML file with panic option
-	newFile, err := os.Create("first-post.html")
-	err = t.Execute(newFile, string(fileContents))
-	if err != nil {
-		panic(err)
-	}
-
+	return string(fileContents)
 }
 
-// Writing a File:
+func save(textFileFlag *string) {
+	textFile, err := ioutil.ReadFile(*textFileFlag)
+	newTextFile := strings.Split(*textFileFlag, ".")[0]
 
-// func main() {
-// 	bytesToWrite := []byte("hello\ngo\n") // creates 2 new lines followed by an empty line
-// 	err := ioutil.WriteFile("new-file.txt", bytesToWrite, 0644)
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// }
+	// convert the text file to HTML
+	newHTMLFile, err := os.Create(fmt.Sprintf("%s.html", newTextFile))
+	if err != nil {
+		panic(err)
+	}
+
+	t := template.Must(template.New("template.tmpl").ParseFiles("template.tmpl"))
+	err = t.Execute(newHTMLFile, textFile)
+	if err != nil {
+		panic(err)
+	}
+}

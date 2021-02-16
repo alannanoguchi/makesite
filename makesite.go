@@ -3,6 +3,7 @@
 // https://gobyexample.com/writing-files
 // https://gobyexample.com/reading-files
 // https://golang.org/pkg/flag/
+// Reference to Dani's makesite.go : https://gist.github.com/droxey/5984bf42810ad53f03b9c465e1484449
 
 package main
 
@@ -15,36 +16,79 @@ import (
 	"text/template"
 )
 
-func main() {
-
-	// Add a new flag to your command named file. This flag represents the name of any .txt file in the same directory as your program.
-	textFileFlag := flag.String("file", "", "Name of the .txt file")
-	flag.Parse()
-
-	save(textFileFlag)
+// Page holds all the information we need to generate a new
+// HTML page from a text file on the filesystem.
+type Page struct {
+	TextFilePath string
+	TextFileName string
+	HTMLPagePath string
+	Content      string
 }
 
-func readFile() string {
-	fileContents, err := ioutil.ReadFile("first-post.txt")
+func readFile(filename string) string {
+	fileContents, err := ioutil.ReadFile(filename)
 	if err != nil {
 		panic(err)
 	}
 	return string(fileContents)
 }
 
-func save(textFileFlag *string) {
-	textFile, err := ioutil.ReadFile(*textFileFlag)
-	newTextFile := strings.Split(*textFileFlag, ".")[0]
-
-	// convert the text file to HTML
-	newHTMLFile, err := os.Create(fmt.Sprintf("%s.html", newTextFile))
+func createPageFromTextFile(filePath string) Page {
+	// Make sure we can read in the file first!
+	fileContents, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		panic(err)
 	}
 
-	t := template.Must(template.New("template.tmpl").ParseFiles("template.tmpl"))
-	err = t.Execute(newHTMLFile, textFile)
+	// Get the name of the file without `.txt` at the end.
+	// We'll use this later when naming our new HTML file.
+	fileNameWithoutExtension := strings.Split(filePath, ".txt")[0]
+
+	// Instantiate a new Page.
+	// Populate each field and return the data.
+	return Page{
+		TextFilePath: filePath,
+		TextFileName: fileNameWithoutExtension,
+		HTMLPagePath: fileNameWithoutExtension + ".html",
+		Content:      string(fileContents),
+	}
+}
+
+func renderTemplateFromPage(templateFilePath string, page Page) {
+	// Create a new template in memory named "template.tmpl".
+	// When the template is executed, it will parse template.tmpl,
+	// looking for {{ }} where we can inject content.
+	t := template.Must(template.New(templateFilePath).ParseFiles(templateFilePath))
+
+	// Create a new, blank HTML file.
+	newFile, err := os.Create(page.HTMLPagePath)
 	if err != nil {
 		panic(err)
 	}
+
+	// Executing the template injects the Page instance's data,
+	// allowing us to render the content of our text file.
+	// Furthermore, upon execution, the rendered template will be
+	// saved inside the new file we created earlier.
+	t.Execute(newFile, page)
+	fmt.Println("✅ Generated File: ", page.HTMLPagePath)
+}
+
+func main() {
+	// This flag represents the name of any `.txt` file in the same directory as your program.
+	// Run `./makesite --file=latest-post.txt` to test.
+	var textFilePath string
+	flag.StringVar(&textFilePath, "file", "", "Name or Path to a text file")
+	flag.Parse()
+
+	// Make sure the `file` flag isn't blank.
+	if textFilePath == "" {
+		panic("Missing the --file flag! Please supply one.")
+	}
+
+	// Read the provided text file and store it's information in a struct.
+	newPage := createPageFromTextFile(textFilePath)
+
+	// Use the struct to generate a new HTML page based on the provided template.
+	renderTemplateFromPage("template.tmpl", newPage)
 }

@@ -34,7 +34,7 @@ func readFile(fileName string) string {
 	return string(fileContents)
 }
 
-func createPageFromTextFile(filePath string) Page {
+func createPageFromTextFile(text string, filePath string) Page {
 	// Make sure we can read in the file first!
 	fileContents, err := ioutil.ReadFile(filePath)
 	if err != nil {
@@ -83,6 +83,9 @@ func main() {
 
 	var dir string
 	flag.StringVar(&dir, "dir", "", "Directory of files")
+
+	var translation string
+	flag.StringVar(&translation, "translation", "en", "Google Translate text.")
 
 	flag.Parse()
 

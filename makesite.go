@@ -11,6 +11,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"strings"
 	"text/template"
@@ -25,8 +26,8 @@ type Page struct {
 	Content      string
 }
 
-func readFile(filename string) string {
-	fileContents, err := ioutil.ReadFile(filename)
+func readFile(fileName string) string {
+	fileContents, err := ioutil.ReadFile(fileName)
 	if err != nil {
 		panic(err)
 	}
@@ -79,7 +80,20 @@ func main() {
 	// Run `./makesite --file=latest-post.txt` to test.
 	var textFilePath string
 	flag.StringVar(&textFilePath, "file", "", "Name or Path to a text file")
+
+	var dir string
+	flag.StringVar(&dir, "dir", "", "Directory of files")
+
 	flag.Parse()
+
+	files, err := ioutil.ReadDir(dir)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, file := range files {
+		fmt.Println(file.Name())
+	}
 
 	// Make sure the `file` flag isn't blank.
 	if textFilePath == "" {

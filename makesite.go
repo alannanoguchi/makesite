@@ -8,6 +8,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -15,6 +16,9 @@ import (
 	"os"
 	"strings"
 	"text/template"
+
+	"cloud.google.com/go/translate" // https://github.com/mind1949/googletrans
+	"golang.org/x/text/language"    // List of languages https://pkg.go.dev/golang.org/x/text/language
 )
 
 // Page holds all the information we need to generate a new
@@ -34,7 +38,7 @@ func readFile(fileName string) string {
 	return string(fileContents)
 }
 
-func createPageFromTextFile(text string, filePath string) Page {
+func createPageFromTextFile(filePath string) Page {
 	// Make sure we can read in the file first!
 	fileContents, err := ioutil.ReadFile(filePath)
 	if err != nil {
@@ -73,6 +77,32 @@ func renderTemplateFromPage(templateFilePath string, page Page) {
 	// saved inside the new file we created earlier.
 	t.Execute(newFile, page)
 	fmt.Println("✅ Generated File: ", page.HTMLPagePath)
+}
+
+// Translate text into new language
+func translateText(targetLanguage, text string) (string, error) {
+	// text := "The Go Gopher is cute"
+	ctx := context.Background()
+
+	lang, err := language.Parse(targetLanguage)
+	if err != nil {
+		return "", fmt.Errorf("language.Parse: %v", err)
+	}
+
+	client, err := translate.NewClient(ctx)
+	if err != nil {
+		return "", err
+	}
+	defer client.Close()
+
+	resp, err := client.Translate(ctx, []string{text}, lang, nil)
+	if err != nil {
+		return "", fmt.Errorf("Translate: %v", err)
+	}
+	if len(resp) == 0 {
+		return "", fmt.Errorf("Translate returned empty response to text: %s", text)
+	}
+	return resp[0].Text, nil
 }
 
 func main() {

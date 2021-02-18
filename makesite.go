@@ -17,8 +17,10 @@ import (
 	"strings"
 	"text/template"
 
-	"cloud.google.com/go/translate" // https://github.com/mind1949/googletrans
-	"golang.org/x/text/language"    // List of languages https://pkg.go.dev/golang.org/x/text/language
+	// https://github.com/mind1949/googletrans
+
+	"cloud.google.com/go/translate"
+	"golang.org/x/text/language" // List of languages https://pkg.go.dev/golang.org/x/text/language
 )
 
 // Page holds all the information we need to generate a new
@@ -45,6 +47,11 @@ func createPageFromTextFile(filePath string) Page {
 		panic(err)
 	}
 
+	translatedFileContents, err := translateText("es", string(fileContents)) // Translate the fileContents into Spanish
+	if err != nil {
+		panic(err)
+	}
+
 	// Get the name of the file without `.txt` at the end.
 	// We'll use this later when naming our new HTML file.
 	fileNameWithoutExtension := strings.Split(filePath, ".txt")[0]
@@ -55,7 +62,7 @@ func createPageFromTextFile(filePath string) Page {
 		TextFilePath: filePath,
 		TextFileName: fileNameWithoutExtension,
 		HTMLPagePath: fileNameWithoutExtension + ".html",
-		Content:      string(fileContents),
+		Content:      translatedFileContents, // Adding the translated text into the Page
 	}
 }
 
@@ -113,9 +120,6 @@ func main() {
 
 	var dir string
 	flag.StringVar(&dir, "dir", "", "Directory of files")
-
-	var translation string
-	flag.StringVar(&translation, "translation", "en", "Google Translate text.")
 
 	flag.Parse()
 
